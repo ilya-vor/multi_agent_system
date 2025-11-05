@@ -1,0 +1,54 @@
+{
+  "agent1@localhost": {
+    "backpack": [
+      {
+        "name": "палатка",
+        "weight": 6
+      },
+      {
+        "name": "котелок",
+        "weight": 2
+      }
+    ],
+    "total_weight": 8
+  },
+  "agent2@localhost": {
+    "backpack": [
+      {
+        "name": "топор",
+        "weight": 3
+      },
+      {
+        "name": "аптечка",
+        "weight": 1
+      },
+      {
+        "name": "фонарик",
+        "weight": 3
+      }
+    ],
+    "total_weight": 7
+  },
+  "agent3@localhost": {
+    "backpack": [
+      {
+        "name": "вода",
+        "weight": 4
+      },
+      {
+        "name": "фонарик",
+        "weight": 1
+      }
+    ],
+    "total_weight": 5
+  },
+  "agent4@localhost": {
+    "backpack": [
+      {
+        "name": "вода",
+        "weight": 10
+      }
+    ],
+    "total_weight": 10
+  }
+}
