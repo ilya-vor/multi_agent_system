@@ -1,317 +1,388 @@
-import asyncio
-import json
 import argparse
-from pathlib import Path
+import logging
+import asyncio
+import random
+import time
+from datetime import datetime
+
 from spade.agent import Agent
 from spade.behaviour import CyclicBehaviour, PeriodicBehaviour
 from spade.message import Message
 from spade.template import Template
+import json
 
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+# )
 
-class HikerAgent(Agent):
-    def __init__(self, jid, password, initial_items=None):
-        super().__init__(jid, password)
-        self.backpack = initial_items if initial_items else []
+# Константы алгоритма
+COMMUNICATION_INTERVAL = 5  # секунды
+BALANCE_THRESHOLD = 0.15  # 15% порог разницы
 
-    async def setup(self):
-        print(f"[SETUP] {self.jid} запущен.")
+def get_time():
+    timestamp = time.time()
+    return datetime.fromtimestamp(timestamp).strftime('%H:%M:%S.%f')[:-3]
 
-    class GetBackpackBehaviour(CyclicBehaviour):
-        async def run(self):
-            msg = await self.receive(timeout=3)
-            if msg:
-                print(f"Запрос от {msg.sender.jid} для получения рюкзака")
-                reply = msg.make_reply()
-                reply.set_metadata("type", "weight_reply")
-                reply.body = json.dumps(self.agent.backpack)
-                await self.send(reply)
-
-    class SaveBackpackBehaviour(CyclicBehaviour):
-        async def run(self):
-            msg = await self.receive(timeout=3)
-            if msg:
-                print(f"Запрос от {msg.sender.jid} для сохранения рюкзака")
-                new_backpack = json.loads(msg.body)
-                self.agent.backpack = new_backpack
-
-
-class BalanceAgent(Agent):
-    def __init__(self, jid, password, hiker_jids):
-        super().__init__(jid, password)
-        self.balancing_history = []
-        self.hiker_jids = hiker_jids
-
-    async def setup(self):
-        print(f"[SETUP] {self.jid} запущен.")
-
-    class BalanceBehaviour(PeriodicBehaviour):
-        async def run(self):
-            curr_backpacks = {}
-            for hiker in self.agent.hiker_jids:
-                msg = Message(to=hiker)
-                msg.set_metadata("type", "weight_request")
-                await self.send(msg)
-                received_msg = await self.receive(timeout=3)
-                if received_msg:
-                    backpack = json.loads(received_msg.body)
-                    curr_backpacks[hiker] = backpack
-                else:
-                    print(f"[BALANCER] Не получен ответ от {hiker}")
-                    return
-
-            # Вычисляем суммарные веса для каждого агента
-            weights = {}
-            for jid, backpack in curr_backpacks.items():
-                total_weight = sum(item["weight"] for item in backpack)
-                weights[jid] = total_weight
-
-            print(f"[BALANCER] Веса до балансировки: {weights}")
-
-            # Проверяем, не было ли такой же конфигурации недавно (предотвращение циклов)
-            current_config = tuple(sorted((jid, weight) for jid, weight in weights.items()))
-            if current_config in self.agent.balancing_history:
-                print(f"[BALANCER] Обнаружена циклическая конфигурация, пропускаем балансировку")
-                msg = Message(to="agent_saver@localhost")
-                msg.set_metadata("type", "saveallbackpacks_request")
-                msg.body = json.dumps(curr_backpacks)
-                await self.send(msg)
-                await self.agent.stop()
-                return
-
-            # Сохраняем текущую конфигурацию (оставляем только последние 10)
-            self.agent.balancing_history.append(current_config)
-            if len(self.agent.balancing_history) > 10:
-                self.agent.balancing_history.pop(0)
-
-            # Находим самого тяжелого и самого легкого
-            heaviest_jid = max(weights, key=weights.get)
-            lightest_jid = min(weights, key=weights.get)
-
-            # Проверяем нужно ли балансировать
-            if heaviest_jid == lightest_jid:
-                print("[BALANCER] Веса равны, балансировка не требуется")
-                msg = Message(to="agent_saver@localhost")
-                msg.set_metadata("type", "saveallbackpacks_request")
-                msg.body = json.dumps(curr_backpacks)
-                await self.send(msg)
-                await self.agent.stop()
-                return
-
-            diff = weights[heaviest_jid] - weights[lightest_jid]
-            if diff <= 2:  # порог балансировки
-                print(f"[BALANCER] Разница {diff}кг слишком мала")
-                msg = Message(to="agent_saver@localhost")
-                msg.set_metadata("type", "saveallbackpacks_request")
-                msg.body = json.dumps(curr_backpacks)
-                await self.send(msg)
-                await self.agent.stop()
-                return
-
-            print(
-                f"[BALANCER] Балансируем: {heaviest_jid}({weights[heaviest_jid]}кг) → {lightest_jid}({weights[lightest_jid]}кг)")
-
-            # УЛУЧШЕННЫЙ АЛГОРИТМ ВЫБОРА ПРЕДМЕТА
-            heaviest_backpack = curr_backpacks[heaviest_jid]
-            if not heaviest_backpack:
-                print(f"[BALANCER] У {heaviest_jid} нет предметов")
-                return
-
-            # Целевой вес после передачи (стремимся к равенству)
-            target_weight_after = (weights[heaviest_jid] + weights[lightest_jid]) / 2
-
-            # Ищем предмет, который приблизит нас к целевому весу
-            best_item = None
-            best_improvement = float('inf')  # Минимальная разница от целевого веса
-
-            for item in heaviest_backpack:
-                # Предполагаемые веса после передачи
-                new_heavy_weight = weights[heaviest_jid] - item["weight"]
-                new_light_weight = weights[lightest_jid] + item["weight"]
-
-                # Новая разница между самыми тяжелым и легким
-                new_max_weight = max(new_heavy_weight, max(w for jid, w in weights.items() if jid != heaviest_jid))
-                new_min_weight = min(new_light_weight, min(w for jid, w in weights.items() if jid != lightest_jid))
-                new_diff = new_max_weight - new_min_weight
-
-                # Насколько мы приближаемся к идеальному балансу
-                improvement = abs(new_heavy_weight - target_weight_after) + abs(new_light_weight - target_weight_after)
-
-                if improvement < best_improvement and new_diff < diff:
-                    best_improvement = improvement
-                    best_item = item
-
-            # Если не нашли подходящий предмет, берем самый легкий
-            if not best_item:
-                best_item = min(heaviest_backpack, key=lambda x: x["weight"])
-                print(f"[BALANCER] Не найден оптимальный предмет, берем самый легкий")
-
-            print(f"[BALANCER] Передаем: {best_item['name']} ({best_item['weight']}кг)")
-
-            # Обновляем локальные данные
-            curr_backpacks[heaviest_jid] = [item for item in curr_backpacks[heaviest_jid] if item != best_item]
-            curr_backpacks[lightest_jid] = curr_backpacks[lightest_jid] + [best_item]
-
-            # Вычисляем новые веса
-            new_weights = {}
-            for jid, backpack in curr_backpacks.items():
-                total_weight = sum(item["weight"] for item in backpack)
-                new_weights[jid] = total_weight
-
-            print(f"[BALANCER] Веса после балансировки: {new_weights}")
-
-            # Статистика улучшения
-            old_std = self.calculate_std_dev(list(weights.values()))
-            new_std = self.calculate_std_dev(list(new_weights.values()))
-            print(f"[BALANCER] Стандартное отклонение: {old_std:.2f} → {new_std:.2f}")
-
-            # Рассылаем обновления ТОЛЬКО тем, у кого изменился рюкзак
-            updated_hikers = [heaviest_jid, lightest_jid]
-            for hiker in updated_hikers:
-                msg = Message(to=hiker)
-                msg.set_metadata("type", "save_request")
-                msg.body = json.dumps(curr_backpacks[hiker])
-                await self.send(msg)
-                print(f"[BALANCER] Отправлено обновление для {hiker}")
-
-            print(f"[BALANCER] Цикл балансировки завершен")
-            print(f"{'=' * 50}")
-
-        def calculate_std_dev(self, values):
-            """Вычисляет стандартное отклонение для оценки равномерности распределения"""
-            if len(values) <= 1:
-                return 0
-            mean = sum(values) / len(values)
-            variance = sum((x - mean) ** 2 for x in values) / len(values)
-            return variance ** 0.5
-
-
-class BackpacksSaverAgent(Agent):
-    def __init__(self, jid, password, output_file):
-        super().__init__(jid, password)
-        self.output_file = output_file
-
-    async def setup(self):
-        print(f"[SETUP] {self.jid} запущен.")
-
-    class SaveAllHikerBackpacksBehaviour(CyclicBehaviour):
-        async def run(self):
-            msg = await self.receive(timeout=3)
-            if msg:
-                print(f"Запрос от {msg.sender.jid} для сохранения рюкзаков туристов в файл")
-                backpacks = json.loads(msg.body)
-                self.save_backpacks_to_json(backpacks)
-
-        def save_backpacks_to_json(self, backpacks):
-            """Сохраняет текущее состояние рюкзаков в JSON файл"""
-            try:
-                # Преобразуем данные для сохранения
-                save_data = {}
-                for jid, backpack in backpacks.items():
-                    save_data[jid] = {
-                        "backpack": backpack,
-                        "total_weight": sum(item["weight"] for item in backpack)
-                    }
-
-                with open(self.agent.output_file, 'w', encoding='utf-8') as f:
-                    json.dump(save_data, f, ensure_ascii=False, indent=2)
-
-                print(f"[BALANCER] Рюкзаки сохранены в файл: {self.agent.output_file}")
-                return True
-            except Exception as e:
-                print(f"[BALANCER] Ошибка при сохранении в JSON: {e}")
-                return False
-
-
-def load_hikers_from_json(input_file):
-    """Загружает данные о туристах из JSON файла"""
+def load_backpack_from_file(file_path):
     try:
-        with open(input_file, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-
-        hikers = []
-        for hiker_data in data.get("hikers", []):
-            jid = hiker_data.get("jid")
-            backpack = hiker_data.get("backpack", [])
-            hikers.append({
-                "jid": jid,
-                "backpack": backpack
-            })
-
-        print(f"Загружено {len(hikers)} туристов из файла {input_file}")
-        return hikers
+        return data.get("backpack", [])
     except Exception as e:
-        print(f"Ошибка при загрузке файла {input_file}: {e}")
+        print(f"Ошибка загрузки {file_path}: {e}")
         return []
 
 
-async def main(input_file, output_file):
-    # Загружаем данные о туристах
-    hikers_data = load_hikers_from_json(input_file)
-    if not hikers_data:
-        print("Не удалось загрузить данные о туристах")
-        return
-
-    # Создаем агентов-туристов
-    hiker_agents = []
-    hiker_jids = []
-
-    for hiker_data in hikers_data:
-        hiker = HikerAgent(
-            jid=hiker_data["jid"],
-            password="pass",
-            initial_items=hiker_data["backpack"]
-        )
-        hiker_agents.append(hiker)
-        hiker_jids.append(hiker_data["jid"])
-
-    # Создаем балансировщик и агент для сохранения
-    balancer = BalanceAgent("agent_balancer@localhost", "pass", hiker_jids)
-    saver = BackpacksSaverAgent("agent_saver@localhost", "pass", output_file)
-
-    # Настраиваем шаблоны для поведения
-    weight_template_reply = Template(metadata={"type": "weight_reply"})
-    save_all_backpacks_template = Template(metadata={"type": "saveallbackpacks_request"})
-    weight_template = Template(metadata={"type": "weight_request"})
-    save_backpack_template = Template(metadata={"type": "save_request"})
-
-    # Добавляем поведения
-    balancer.add_behaviour(balancer.BalanceBehaviour(10), weight_template_reply)
-    saver.add_behaviour(saver.SaveAllHikerBackpacksBehaviour(), save_all_backpacks_template)
-
-    for hiker in hiker_agents:
-        hiker.add_behaviour(hiker.GetBackpackBehaviour(), weight_template)
-        hiker.add_behaviour(hiker.SaveBackpackBehaviour(), save_backpack_template)
-
-    # Запускаем всех агентов
-    for hiker in hiker_agents:
-        await hiker.start()
-
-    await balancer.start()
-    await saver.start()
-
-    # Ждем завершения работы балансировщика
-    while balancer.is_alive():
-        await asyncio.sleep(1)
-
-    # Останавливаем всех агентов
-    for hiker in hiker_agents:
-        await hiker.stop()
-    await saver.stop()
-
-    print(f"\nБалансировка завершена. Результат сохранен в: {output_file}")
+def save_backpack_to_file(file_path, backpack):
+    try:
+        data = {
+            "backpack": backpack,
+            "total_weight": sum(item["weight"] for item in backpack)
+        }
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        print(f"{get_time()} [SAVE] Рюкзак сохранен в {file_path}, вес: {data['total_weight']}")
+        return True
+    except Exception as e:
+        print(f"{get_time()} [SAVE] Ошибка сохранения {file_path}: {e}")
+        return False
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Система балансировки рюкзаков туристов")
-    parser.add_argument("--input", "-i", required=True, help="Путь к входному JSON файлу с данными о туристах")
-    parser.add_argument("--output", "-o", required=True, help="Путь к выходному JSON файлу для сохранения результатов")
+class HikerAgent(Agent):
+    def __init__(self, jid, password, backpack_file, other_hikers=None, initial_items=None):
+        super().__init__(jid, password)
+        self.backpack = initial_items if initial_items else []
+        self.backpack_file = backpack_file
+        self.other_hikers = other_hikers if other_hikers else []
+        self.total_weight = sum(item["weight"] for item in self.backpack)
+
+    async def setup(self):
+        print(f"{get_time()} [SETUP] {self.jid} запущен. Начальный вес: {self.total_weight}, файл: {self.backpack_file}")
+
+        # Шаблоны для различных типов сообщений
+        weight_request_template = Template()
+        weight_request_template.set_metadata("type", "weight_request")
+
+        weight_reply_template = Template()
+        weight_reply_template.set_metadata("type", "weight_reply")
+
+        transfer_request_template = Template()
+        transfer_request_template.set_metadata("type", "transfer_request")
+
+        transfer_confirm_template = Template()
+        transfer_confirm_template.set_metadata("type", "transfer_confirm")
+
+        # Добавляем поведения
+        self.add_behaviour(self.BalancingBehaviour(period=COMMUNICATION_INTERVAL))
+        self.add_behaviour(self.WeightRequestBehaviour(), template=weight_request_template)
+        self.add_behaviour(self.WeightReplyBehaviour(), template=weight_request_template)
+        self.add_behaviour(self.TransferRequestBehaviour(), template=transfer_request_template)
+        self.add_behaviour(self.TransferConfirmBehaviour(), template=transfer_request_template)
+
+    def calculate_weight(self):
+        """Пересчитывает общий вес рюкзака"""
+        self.total_weight = sum(item["weight"] for item in self.backpack)
+        return self.total_weight
+
+    def save_backpack(self):
+        """Сохраняет текущий рюкзак в файл"""
+        return save_backpack_to_file(f"{self.backpack_file}_new", self.backpack)
+
+    def find_best_object_to_transfer(self, weight_to_shed):
+        """
+        Находит лучший объект для передачи
+        Цель: объект с весом, наиболее близким к weight_to_shed, но не превышающим его
+        """
+        # Фильтруем объекты, которые можно передать (вес <= weight_to_shed)
+        suitable_objects = [item for item in self.backpack if item["weight"] <= weight_to_shed]
+
+        if not suitable_objects:
+            # Если нет подходящих объектов, возвращаем самый легкий
+            return min(self.backpack, key=lambda x: x["weight"]) if self.backpack else None
+
+        # Находим объект с весом, наиболее близким к weight_to_shed
+        best_object = min(suitable_objects,
+                          key=lambda x: abs(x["weight"] - weight_to_shed))
+        return best_object
+
+    class BalancingBehaviour(PeriodicBehaviour):
+        async def run(self):
+            """Основное поведение балансировки"""
+            # Шаг 1: Сон уже реализован через PeriodicBehaviour
+
+            # Шаг 2: Выбор случайного соседа
+            if not self.agent.other_hikers:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Нет других туристов для балансировки")
+                return
+
+            neighbor = random.choice(self.agent.other_hikers)
+            print(f"{get_time()} [BALANCE] {self.agent.jid}: Выбран сосед {neighbor}")
+
+            # Шаг 3: Обмен данными - запрос веса соседа
+            my_weight = self.agent.calculate_weight()
+
+            msg = Message(to=neighbor)
+            msg.set_metadata("type", "weight_request")
+            msg.body = json.dumps({"weight": my_weight})
+
+            await self.send(msg)
+            print(f"{get_time()} [BALANCE] {self.agent.jid}: Отправлен запрос веса к {neighbor}")
+
+            # Ждем ответа
+            reply = await self.receive(timeout=10)
+            if not reply:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Таймаут ответа от {neighbor}")
+                return
+
+            if reply.get_metadata("type") != "weight_reply":
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Неверный тип ответа от {neighbor}")
+                return
+
+            try:
+                neighbor_data = json.loads(reply.body)
+                neighbor_weight = neighbor_data["weight"]
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Вес соседа {neighbor} = {neighbor_weight}")
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Ошибка парсинга ответа: {e}")
+                return
+
+            # Шаг 4: Принятие решения
+            average_weight = (my_weight + neighbor_weight) / 2
+            weight_diff = abs(my_weight - neighbor_weight)
+            threshold_value = BALANCE_THRESHOLD * average_weight
+
+            print(
+                f"{get_time()} [BALANCE] {self.agent.jid}: Средний вес = {average_weight:.2f}, разница = {weight_diff:.2f}, порог = {threshold_value:.2f}")
+
+            # Проверка сбалансированности
+            if weight_diff <= threshold_value:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Веса сбалансированы, завершаю раунд")
+                return
+
+            # Если мой вес значительно больше
+            if my_weight > neighbor_weight + threshold_value:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Мой вес больше, инициирую передачу объекта")
+
+                # Шаг 5: Выбор объекта для передачи
+                target_weight = average_weight
+                weight_to_shed = my_weight - target_weight
+
+                candidate_object = self.agent.find_best_object_to_transfer(weight_to_shed)
+
+                if not candidate_object:
+                    print(f"{get_time()} [BALANCE] {self.agent.jid}: Нет объектов для передачи")
+                    return
+
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Выбран объект для передачи: {candidate_object}")
+
+                # Шаг 6: Транзакция передачи
+                transfer_msg = Message(to=neighbor)
+                transfer_msg.set_metadata("type", "transfer_request")
+                transfer_msg.body = json.dumps({
+                    "object": candidate_object,
+                    "expected_weight": my_weight - candidate_object["weight"]
+                })
+
+                await self.send(transfer_msg)
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Отправлен запрос на передачу объекта")
+
+                # Ждем подтверждения
+                confirm = await self.receive(timeout=10)
+                if (confirm and
+                        confirm.get_metadata("type") == "transfer_confirm" and
+                        confirm.sender == neighbor):
+                    # Удаляем объект из своего рюкзака
+                    self.agent.backpack.remove(candidate_object)
+                    print(f"{get_time()} [BALANCE] {self.agent.jid}: Объект удален: {candidate_object}.")
+                    new_weight = self.agent.calculate_weight()
+
+                    # Сохраняем рюкзак после успешной передачи
+                    if self.agent.save_backpack():
+                        print(f"{get_time()} [BALANCE] {self.agent.jid}: Объект передан. Новый вес: {new_weight}. Рюкзак сохранен.")
+                    else:
+                        print(
+                            f"{get_time()} [BALANCE] {self.agent.jid}: Объект передан. Новый вес: {new_weight}. Ошибка сохранения рюкзака.")
+                else:
+                    print(f"{get_time()} [BALANCE] {self.agent.jid}: Подтверждение не получено, объект не передан")
+
+            # Если мой вес значительно меньше - пассивно ждем, когда сосед предложит объекты
+            elif my_weight < neighbor_weight - threshold_value:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Мой вес меньше, жду предложений от соседа")
+                # В классическом алгоритме агент пассивно ждет, когда донор сам предложит объекты
+
+    class WeightRequestBehaviour(CyclicBehaviour):
+        """Обработка запросов веса от других агентов"""
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
+            if msg and msg.get_metadata("type") == "weight_request":
+                try:
+                    # Отправляем наш текущий вес
+                    reply = msg.make_reply()
+                    reply.set_metadata("type", "weight_reply")
+                    current_weight = self.agent.calculate_weight()
+                    reply.body = json.dumps({"weight": current_weight})
+                    await self.send(reply)
+                    print(f"{get_time()} [WEIGHT] {self.agent.jid}: Отправлен вес {current_weight} для {msg.sender}")
+                except Exception as e:
+                    print(f"{get_time()} [WEIGHT] {self.agent.jid}: Ошибка обработки запроса веса: {e}")
+
+    class WeightReplyBehaviour(CyclicBehaviour):
+        """Обработка запросов веса от других агентов"""
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
+            if msg and msg.get_metadata("type") == "weight_request":
+                try:
+                    # Отправляем наш текущий вес
+                    reply = msg.make_reply()
+                    reply.set_metadata("type", "weight_reply")
+                    current_weight = self.agent.calculate_weight()
+                    reply.body = json.dumps({"weight": current_weight})
+                    await self.send(reply)
+                    print(f"{get_time()} [WEIGHT] {self.agent.jid}: Отправлен вес {current_weight} для {msg.sender}")
+                except Exception as e:
+                    print(f"{get_time()} [WEIGHT] {self.agent.jid}: Ошибка обработки запроса веса: {e}")
+
+    class TransferRequestBehaviour(CyclicBehaviour):
+        """Обработка запросов на передачу объектов"""
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
+            if msg and msg.get_metadata("type") == "transfer_request":
+                try:
+                    data = json.loads(msg.body)
+                    transfer_object = data["object"]
+                    expected_weight = data.get("expected_weight", 0)
+
+                    print(f"{get_time()} [TRANSFER] {self.agent.jid}: Получен запрос на объект {transfer_object}")
+
+                    # Добавляем объект в свой рюкзак
+                    self.agent.backpack.append(transfer_object)
+                    new_weight = self.agent.calculate_weight()
+
+                    # Сохраняем рюкзак после получения объекта
+                    save_success = self.agent.save_backpack()
+
+                    # Отправляем подтверждение
+                    confirm_msg = msg.make_reply()
+                    confirm_msg.set_metadata("type", "transfer_confirm")
+                    confirm_msg.body = json.dumps({
+                        "received": True,
+                        "new_weight": new_weight,
+                        "save_success": save_success
+                    })
+                    await self.send(confirm_msg)
+
+                    if save_success:
+                        print(f"{get_time()} [TRANSFER] {self.agent.jid}: Объект принят. Новый вес: {new_weight}. Рюкзак сохранен.")
+                    else:
+                        print(
+                            f"{get_time()} [TRANSFER] {self.agent.jid}: Объект принят. Новый вес: {new_weight}. Ошибка сохранения рюкзака.")
+
+                except Exception as e:
+                    print(f"{get_time()} [TRANSFER] {self.agent.jid}: Ошибка обработки запроса передачи: {e}")
+                    # Отправляем отказ
+                    error_reply = msg.make_reply()
+                    error_reply.set_metadata("type", "transfer_error")
+                    error_reply.body = json.dumps({"error": str(e)})
+                    await self.send(error_reply)
+
+    class TransferConfirmBehaviour(CyclicBehaviour):
+        """Обработка запросов на передачу объектов"""
+
+        async def run(self):
+            msg = await self.receive(timeout=5)
+            if msg and msg.get_metadata("type") == "transfer_request":
+                try:
+                    data = json.loads(msg.body)
+                    transfer_object = data["object"]
+                    expected_weight = data.get("expected_weight", 0)
+
+                    print(f"{get_time()} [TRANSFER] {self.agent.jid}: Получен запрос на объект {transfer_object}")
+
+                    # Добавляем объект в свой рюкзак
+                    self.agent.backpack.append(transfer_object)
+                    new_weight = self.agent.calculate_weight()
+
+                    # Сохраняем рюкзак после получения объекта
+                    save_success = self.agent.save_backpack()
+
+                    # Отправляем подтверждение
+                    confirm_msg = msg.make_reply()
+                    confirm_msg.set_metadata("type", "transfer_confirm")
+                    confirm_msg.body = json.dumps({
+                        "received": True,
+                        "new_weight": new_weight,
+                        "save_success": save_success
+                    })
+                    await self.send(confirm_msg)
+
+                    if save_success:
+                        print(f"{get_time()} [TRANSFER] {self.agent.jid}: Объект принят. Новый вес: {new_weight}. Рюкзак сохранен.")
+                    else:
+                        print(
+                            f"{get_time()} [TRANSFER] {self.agent.jid}: Объект принят. Новый вес: {new_weight}. Ошибка сохранения рюкзака.")
+
+                except Exception as e:
+                    print(f"{get_time()} [TRANSFER] {self.agent.jid}: Ошибка обработки запроса передачи: {e}")
+                    # Отправляем отказ
+                    error_reply = msg.make_reply()
+                    error_reply.set_metadata("type", "transfer_error")
+                    error_reply.body = json.dumps({"error": str(e)})
+                    await self.send(error_reply)
+
+
+async def main():
+    parser = argparse.ArgumentParser(description="Турист для распределенной балансировки веса")
+    parser.add_argument("--jid", required=True, help="JID туриста")
+    parser.add_argument("--password", required=True, help="Пароль")
+    parser.add_argument("--backpack-file", required=True, help="Файл с данными рюкзака")
+    parser.add_argument("--other_hikers", nargs="+", help="JID известных туристов")
+    parser.add_argument("--server", default="localhost", help="XMPP сервер")
+    parser.add_argument("--save-interval", type=int, default=10, help="Интервал периодического сохранения")
 
     args = parser.parse_args()
 
-    # Проверяем существование входного файла
-    if not Path(args.input).exists():
-        print(f"Ошибка: Входной файл {args.input} не существует")
-        exit(1)
+    # Загружаем рюкзак
+    backpack = load_backpack_from_file(args.backpack_file)
 
-    # Запускаем основную программу
-    asyncio.run(main(args.input, args.output))
+    # Создаем агента
+    hiker = HikerAgent(
+        jid=args.jid,
+        password=args.password,
+        backpack_file=args.backpack_file,
+        initial_items=backpack,
+        other_hikers=args.other_hikers[0].split("+") if args.other_hikers else []
+    )
+
+    try:
+        await hiker.start()
+        print(f"Турист {args.jid} запущен. Ctrl+C для остановки")
+        print(f"Файл рюкзака: {args.backpack_file}.  Содержимое: {hiker.backpack}")
+
+        # Периодическое сохранение (резервное)
+        last_save = asyncio.get_event_loop().time()
+        while True:
+            await asyncio.sleep(1)
+            current_time = asyncio.get_event_loop().time()
+            if current_time - last_save >= args.save_interval:
+                if hiker.save_backpack():
+                    print(f"{get_time()} [PERIODIC SAVE] {hiker.jid}: Периодическое сохранение выполнено")
+                else:
+                    print(f"{get_time()} [PERIODIC SAVE] {hiker.jid}: Ошибка периодического сохранения")
+                last_save = current_time
+
+    except KeyboardInterrupt:
+        print("Остановка...")
+        # Финальное сохранение при остановке
+        if hiker.save_backpack():
+            print(f"{get_time()} [FINAL SAVE] {hiker.jid}: Финальное сохранение выполнено")
+        else:
+            print(f"{get_time()} [FINAL SAVE] {hiker.jid}: Ошибка финального сохранения")
+        await hiker.stop()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

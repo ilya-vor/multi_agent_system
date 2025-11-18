@@ -1,0 +1,10 @@
+{
+  "backpack": [
+    {
+      "name": "Предмет А",
+      "weight": 1.0,
+      "category": "test"
+    }
+  ],
+  "total_weight": 1.0
+}
