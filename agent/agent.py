@@ -14,8 +14,8 @@ from common.get_time import get_time
 # )
 
 
-class HikerAgent(Agent):
-    def __init__(self, jid, password, backpack_file, other_hikers=None, initial_items=None):
+class WorkerAgent(Agent):
+    def __init__(self, jid, password, backpack_file, other_workers=None, initial_items=None, specialization=None):
         super().__init__(jid, password)
         self.COMMUNICATION_INTERVAL = 5
         self.BALANCE_THRESHOLD = 0.15
@@ -24,12 +24,13 @@ class HikerAgent(Agent):
         self.my_weight = None
         self.backpack = initial_items if initial_items else []
         self.backpack_file = backpack_file
-        self.other_hikers = other_hikers if other_hikers else []
+        self.other_workers = other_workers if other_workers else []
+        self.specialization = specialization
         self.total_weight = sum(item["weight"] for item in self.backpack)
 
     async def setup(self):
         print(
-            f"{get_time()} [SETUP] {self.jid} запущен. Начальный вес: {self.total_weight}, файл: {self.backpack_file}")
+            f"{get_time()} [SETUP] {self.jid} запущен. Начальный вес: {self.total_weight}, файл: {self.backpack_file}, специализация: {self.specialization}")
 
         # Шаблоны для различных типов сообщений
         request_agent_alive = Template()
@@ -76,14 +77,17 @@ class HikerAgent(Agent):
         Находит лучший объект для передачи
         Цель: объект с весом, наиболее близким к weight_to_shed, но не превышающим его
         """
-        # Фильтруем объекты, которые можно передать (вес <= weight_to_shed)
         suitable_objects = [item for item in self.backpack if item["weight"] <= weight_to_shed]
 
-        if not suitable_objects:
+        # Если у задач есть поле "allowed_professions", предпочитаем те, которые можно передать
+        prof_filtered = [item for item in suitable_objects if "allowed_professions" in item and self.specialization in item["allowed_professions"]]
+
+        candidates = prof_filtered if prof_filtered else suitable_objects
+
+        if not candidates:
             # Если нет подходящих объектов, возвращаем самый легкий
             return min(self.backpack, key=lambda x: x["weight"]) if self.backpack else None
 
         # Находим объект с весом, наиболее близким к weight_to_shed
-        best_object = min(suitable_objects,
-                          key=lambda x: abs(x["weight"] - weight_to_shed))
+        best_object = min(candidates, key=lambda x: abs(x["weight"] - weight_to_shed))
         return best_object

@@ -1,0 +1,23 @@
+[
+  {
+    "id": "t1",
+    "name": "Сварка детали A",
+    "weight": 2.5,
+    "category": "welding",
+    "allowed_professions": ["сварщик"]
+  },
+  {
+    "id": "t2",
+    "name": "Сборка узла B",
+    "weight": 1.5,
+    "category": "assembly",
+    "allowed_professions": ["слесарь","токарь"]
+  },
+  {
+    "id": "t3",
+    "name": "Точение вала",
+    "weight": 3.0,
+    "category": "turning",
+    "allowed_professions": ["токарь"]
+  }
+]

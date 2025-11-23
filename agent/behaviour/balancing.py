@@ -12,13 +12,13 @@ class BalancingBehaviour(PeriodicBehaviour):
             # Шаг 1: Сон уже реализован через PeriodicBehaviour
 
             # Шаг 2: Выбор случайного соседа
-            if not self.agent.other_hikers:
-                print(f"{get_time()} [BALANCE] {self.agent.jid}: Нет других туристов для балансировки")
+            if not self.agent.other_workers:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Нет других работников для балансировки")
                 return
 
             # Избегаем запуска нескольких обменов для одного агента одновременно
             if self.agent.neighbor_choice is None:
-                self.agent.neighbor_choice = random.choice(self.agent.other_hikers)
+                self.agent.neighbor_choice = random.choice(self.agent.other_workers)
                 print(f"{get_time()} [BALANCE] {self.agent.jid}: Выбран сосед {self.agent.neighbor_choice}")
 
                 # Шаг 3: Обмен данными - запрос веса соседа
