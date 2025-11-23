@@ -18,6 +18,11 @@ class TransferRequestBehaviour(CyclicBehaviour):
                       f" Получен запрос на объект {transfer_object}")
 
                 # Добавляем объект в свой рюкзак
+                # Проверка специализации: может ли этот агент выполнить задачу?
+                allowed = transfer_object.get("allowed_professions")
+                if allowed and self.agent.specialization not in allowed:
+                    raise Exception(f"specialization_mismatch: {self.agent.specialization} not in {allowed}")
+
                 self.agent.backpack.append(transfer_object)
                 self.agent.calculate_weight()
 

@@ -1,0 +1,20 @@
+[
+  {
+    "jid": "worker1@example.com",
+    "password": "change_me",
+    "backpack_file": "backpacks/old/backpack1.json",
+    "specialization": "сварщик"
+  },
+  {
+    "jid": "worker2@example.com",
+    "password": "change_me",
+    "backpack_file": "backpacks/old/backpack2.json",
+    "specialization": "слесарь"
+  },
+  {
+    "jid": "worker3@example.com",
+    "password": "change_me",
+    "backpack_file": "backpacks/old/backpack3.json",
+    "specialization": "токарь"
+  }
+]

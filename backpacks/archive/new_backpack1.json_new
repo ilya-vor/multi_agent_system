@@ -1,0 +1,10 @@
+{
+  "backpack": [
+    {
+      "name": "Только вода",
+      "weight": 1.0,
+      "category": "water"
+    }
+  ],
+  "total_weight": 1.0
+}
