@@ -1,0 +1,66 @@
+[
+  {
+    "id": "t1",
+    "name": "Сварка детали A",
+    "weight": 2.5,
+    "category": "welding",
+    "allowed_professions": ["сварщик"]
+  },
+  {
+    "id": "t2",
+    "name": "Сборка узла B",
+    "weight": 1.5,
+    "category": "assembly",
+    "allowed_professions": ["слесарь","токарь"]
+  },
+  {
+    "id": "t3",
+    "name": "Точение вала",
+    "weight": 3.0,
+    "category": "turning",
+    "allowed_professions": ["токарь"]
+  }
+  ,
+  {
+    "id": "t4",
+    "name": "Сварка рамы",
+    "weight": 2.0,
+    "category": "welding",
+    "allowed_professions": ["сварщик"]
+  },
+  {
+    "id": "t5",
+    "name": "Сборка каретки",
+    "weight": 1.0,
+    "category": "assembly",
+    "allowed_professions": ["слесарь","токарь"]
+  },
+  {
+    "id": "t6",
+    "name": "Точение шестерни",
+    "weight": 2.8,
+    "category": "turning",
+    "allowed_professions": ["токарь"]
+  },
+  {
+    "id": "t7",
+    "name": "Мелкая слесарная работа",
+    "weight": 0.8,
+    "category": "assembly",
+    "allowed_professions": ["слесарь"]
+  },
+  {
+    "id": "t8",
+    "name": "Сварка кронштейна",
+    "weight": 1.7,
+    "category": "welding",
+    "allowed_professions": ["сварщик"]
+  },
+  {
+    "id": "t9",
+    "name": "Контроль и подгонка детали",
+    "weight": 1.2,
+    "category": "inspection",
+    "allowed_professions": ["слесарь","токарь","сварщик"]
+  }
+]

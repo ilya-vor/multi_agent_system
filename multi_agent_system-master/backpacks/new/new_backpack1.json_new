@@ -1,0 +1,14 @@
+{
+  "backpack": [
+    {
+      "id": "t3",
+      "name": "Точение вала",
+      "weight": 3.0,
+      "category": "turning",
+      "allowed_professions": [
+        "токарь"
+      ]
+    }
+  ],
+  "total_weight": 3.0
+}

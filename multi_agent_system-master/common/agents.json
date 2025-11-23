@@ -1,0 +1,23 @@
+[
+  {
+    "jid": "worker1@26.3.185.180",
+    "password": "worker1",
+    "backpack_file": "backpacks/old/backpack1.json",
+    "specialization": "сварщик",
+    "other_workers": ["worker2@26.3.185.180","worker3@26.3.185.180"]
+  },
+  {
+    "jid": "worker2@26.3.185.180",
+    "password": "worker2",
+    "backpack_file": "backpacks/old/backpack2.json",
+    "specialization": "слесарь",
+    "other_workers": ["worker1@26.3.185.180","worker3@26.3.185.180"]
+  },
+  {
+    "jid": "worker3@26.3.185.180",
+    "password": "worker3",
+    "backpack_file": "backpacks/old/backpack3.json",
+    "specialization": "токарь",
+    "other_workers": ["worker1@26.3.185.180","worker2@26.3.185.180"]
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "task1",
+    "name": "Сварка рамы",
+    "weight": 3.0,
+    "category": "welding",
+    "allowed_professions": ["сварщик"]
+  },
+  {
+    "id": "task2",
+    "name": "Ремонт петли",
+    "weight": 1.0,
+    "category": "repair",
+    "allowed_professions": ["слесарь"]
+  },
+  {
+    "id": "task3",
+    "name": "Точение вала",
+    "weight": 2.0,
+    "category": "turning",
+    "allowed_professions": ["токарь"]
+  },
+  {
+    "id": "task4",
+    "name": "Сборка узла",
+    "weight": 2.5,
+    "category": "assembly",
+    "allowed_professions": ["слесарь","сварщик"]
+  }
+]

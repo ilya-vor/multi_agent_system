@@ -1,0 +1,12 @@
+{
+  "backpack": [
+    {
+    "id": "t2",
+    "name": "Сборка узла B",
+    "weight": 1.5,
+    "category": "assembly",
+    "allowed_professions": ["слесарь","токарь"]
+  }
+  ],
+  "total_weight": 1.0
+}
