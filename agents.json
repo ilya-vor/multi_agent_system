@@ -1,0 +1,14 @@
+[
+  {
+    "jid": "worker1@26.3.185.180",
+    "specializations": ["программист", "тестировщик"]
+  },
+  {
+    "jid": "worker2@26.3.185.180",
+    "specializations": ["программист"]
+  },
+  {
+    "jid": "worker3@26.3.185.180",
+    "specializations": ["тестировщик"]
+  }
+]

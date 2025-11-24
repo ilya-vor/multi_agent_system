@@ -8,7 +8,7 @@ class CheckAgentAlive(PeriodicBehaviour):
     async def run(self):
         try:
             if not self.agent.neighbor_choice is None:
-                msg = Message(to=self.agent.neighbor_choice)
+                msg = Message(to=self.agent.neighbor_choice[0])
                 msg.set_metadata("type", "request_alive")
                 await self.send(msg)
                 print(f"{get_time()} [CheckAgentAlive] {self.agent.jid}:"
@@ -35,7 +35,7 @@ class ReplyAlive(CyclicBehaviour):
         msg = await self.receive(timeout=10)
         if (msg and
                 msg.get_metadata("type") == "reply_alive" and
-                msg.sender == self.agent.neighbor_choice):
+                msg.sender == self.agent.neighbor_choice[0]):
             pass
         else:
             self.agent.neighbor_choice = None

@@ -12,24 +12,24 @@ class TransferRequestBehaviour(CyclicBehaviour):
             try:
                 data = json.loads(msg.body)
                 transfer_object = data["object"]
-                expected_weight = data.get("expected_weight", 0)
+                expected_time = data.get("expected_time", 0)
 
                 print(f"{get_time()} [TransferRequestBehaviour] {self.agent.jid}:"
-                      f" Получен запрос на объект {transfer_object}")
+                      f" Получен запрос на задачу {transfer_object}")
 
-                # Добавляем объект в свой рюкзак
-                self.agent.backpack.append(transfer_object)
-                self.agent.calculate_weight()
+                # Добавляем объект в свой план
+                self.agent.plan.append(transfer_object)
+                self.agent.calculate_time()
 
-                # Сохраняем рюкзак после получения объекта
-                save_success = self.agent.save_backpack()
+                # Сохраняем план после получения объекта
+                save_success = self.agent.save_plan()
 
                 # Отправляем подтверждение
                 confirm_msg = msg.make_reply()
                 confirm_msg.set_metadata("type", "transfer_confirm")
                 confirm_msg.body = json.dumps({
                     "received": True,
-                    "new_weight": self.agent.my_weight,
+                    "new_time": self.agent.my_total_task_time,
                     "save_success": save_success
                 })
                 await self.send(confirm_msg)
@@ -37,11 +37,11 @@ class TransferRequestBehaviour(CyclicBehaviour):
                 if save_success:
                     print(
                         f"{get_time()} [TransferRequestBehaviour] {self.agent.jid}:"
-                        f" Объект принят. Новый вес: {self.agent.my_weight}. Рюкзак сохранен.")
+                        f" Задача принята. Новый вес: {self.agent.my_total_task_time}. Рюкзак сохранен.")
                 else:
                     print(
                         f"{get_time()} [TransferRequestBehaviour] {self.agent.jid}:"
-                        f" Объект принят. Новый вес: {self.agent.my_weight}. Ошибка сохранения рюкзака.")
+                        f" Задача принята. Новый вес: {self.agent.my_total_task_time}. Ошибка сохранения рюкзака.")
 
             except Exception as e:
                 print(
@@ -61,24 +61,24 @@ class TransferConfirmBehaviour(CyclicBehaviour):
         confirm = await self.receive(timeout=10)
         if (confirm and
             confirm.get_metadata("type") == "transfer_confirm" and
-            confirm.sender == self.agent.neighbor_choice):
+            confirm.sender == self.agent.neighbor_choice[0]):
             try:
-                # Удаляем объект из своего рюкзака
-                self.agent.backpack.remove(self.agent.transfer_object)
+                # Удаляем объект из своего плана
+                self.agent.plan.remove(self.agent.transfer_object)
                 print(
                     f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
                     f" Объект удален: {self.agent.transfer_object}.")
-                self.agent.calculate_weight()
+                self.agent.calculate_time()
 
-                # Сохраняем рюкзак после успешной передачи
-                if self.agent.save_backpack():
+                # Сохраняем план после успешной передачи
+                if self.agent.save_plan():
                     print(
                         f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
-                        f" Объект передан. Новый вес: {self.agent.my_weight}. Рюкзак сохранен.")
+                        f" Задача передана. Новые трудозатраты: {self.agent.my_weight}. План сохранен.")
                 else:
                     print(
                         f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
-                        f" Объект передан. Новый вес: {self.agent.my_weight}. Ошибка сохранения рюкзака.")
+                        f" Задача передана. Новые трудозатраты: {self.agent.my_weight}. Ошибка сохранения плана.")
             except Exception as e:
                 print(
                     f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
@@ -94,7 +94,7 @@ class TransferConfirmErrorBehaviour(CyclicBehaviour):
         confirm = await self.receive(timeout=10)
         if (confirm and
                 confirm.get_metadata("type") == "transfer_confirm_error" and
-                confirm.sender == self.agent.neighbor_choice):
+                confirm.sender == self.agent.neighbor_choice[0]):
             neighbor_data = json.loads(confirm.body)
             neighbor_error = neighbor_data["error"]
             print(
