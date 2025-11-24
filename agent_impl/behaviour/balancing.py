@@ -11,7 +11,8 @@ class BalancingBehaviour(PeriodicBehaviour):
         try:
             if self.agent.attempts_to_balancing < 0:
                 print(f"{get_time()} [BALANCE] {self.agent.jid}: Веса сбалансированы. Завершаю работу")
-                self.agent.stop()
+                await self.agent.stop()
+                return
             # Шаг 1: Сон уже реализован через PeriodicBehaviour
 
             # Шаг 2: Выбор случайного соседа

@@ -75,11 +75,11 @@ class TransferConfirmBehaviour(CyclicBehaviour):
                 if self.agent.save_plan():
                     print(
                         f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
-                        f" Задача передана. Новые трудозатраты: {self.agent.my_weight}. План сохранен.")
+                        f" Задача передана. Новые трудозатраты: {self.agent.my_total_task_time}. План сохранен.")
                 else:
                     print(
                         f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
-                        f" Задача передана. Новые трудозатраты: {self.agent.my_weight}. Ошибка сохранения плана.")
+                        f" Задача передана. Новые трудозатраты: {self.agent.my_total_task_time}. Ошибка сохранения плана.")
             except Exception as e:
                 print(
                     f"{get_time()} [TransferConfirmBehaviour] {self.agent.jid}:"
