@@ -61,6 +61,7 @@ class TransferConfirmBehaviour(CyclicBehaviour):
         confirm = await self.receive(timeout=10)
         if (confirm and
             confirm.get_metadata("type") == "transfer_confirm" and
+            self.agent.neighbor_choice and
             confirm.sender == self.agent.neighbor_choice[0]):
             try:
                 # Удаляем объект из своего плана
@@ -94,6 +95,7 @@ class TransferConfirmErrorBehaviour(CyclicBehaviour):
         confirm = await self.receive(timeout=10)
         if (confirm and
                 confirm.get_metadata("type") == "transfer_confirm_error" and
+                self.agent.neighbor_choice and
                 confirm.sender == self.agent.neighbor_choice[0]):
             neighbor_data = json.loads(confirm.body)
             neighbor_error = neighbor_data["error"]

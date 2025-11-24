@@ -35,6 +35,7 @@ class ReplyAlive(CyclicBehaviour):
         msg = await self.receive(timeout=10)
         if (msg and
                 msg.get_metadata("type") == "reply_alive" and
+                self.agent.neighbor_choice and
                 msg.sender == self.agent.neighbor_choice[0]):
             pass
         else:
