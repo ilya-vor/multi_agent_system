@@ -9,6 +9,9 @@ class BalancingBehaviour(PeriodicBehaviour):
     async def run(self):
         """Основное поведение балансировки"""
         try:
+            if self.agent.attempts_to_balancing < 0:
+                print(f"{get_time()} [BALANCE] {self.agent.jid}: Веса сбалансированы. Завершаю работу")
+                self.agent.stop()
             # Шаг 1: Сон уже реализован через PeriodicBehaviour
 
             # Шаг 2: Выбор случайного соседа

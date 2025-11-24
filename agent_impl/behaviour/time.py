@@ -55,6 +55,7 @@ class TimeReplyBehaviour(CyclicBehaviour):
                 if time_diff <= threshold_value:
                     print(
                         f"{get_time()} [TimeReplyBehaviour] {self.agent.jid}: Задачи сбалансированы, завершаю раунд")
+                    self.agent.attempts_to_balancing -= 1
                     return
 
                 # Если мой вес значительно больше
@@ -88,6 +89,7 @@ class TimeReplyBehaviour(CyclicBehaviour):
                     await self.send(transfer_msg)
                     print(f"{get_time()} [TimeReplyBehaviour] {self.agent.jid}: Отправлен запрос на передачу задачи")
                 else:
+                    self.agent.attempts_to_balancing -= 1
                     self.agent.neighbor_choice = None
                     self.agent.transfer_object = None
 
