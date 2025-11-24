@@ -41,5 +41,6 @@ class ReplyAlive(CyclicBehaviour):
         else:
             self.agent.neighbor_choice = None
             self.agent.transfer_object = None
+            self.agent.attempts_to_balancing -= 1
             print(f"{get_time()} [ReplyAlive] {self.agent.jid}:"
                   f" напарник не ответил, выбираем другого для обмена")
