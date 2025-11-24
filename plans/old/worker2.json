@@ -7,12 +7,12 @@
   },
   "tasks": [
     {
-      "name": "Настроить базу данных",
-      "time": 4,
+      "name": "Написать сайт",
+      "time": 5,
       "specializations": [
         "программист"
       ]
     }
   ],
-  "total_task_time": 4.0
+  "total_task_time": 5.0
 }
