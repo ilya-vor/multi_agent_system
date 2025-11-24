@@ -1,0 +1,18 @@
+{
+  "agent": {
+    "jid": "worker2@26.3.185.180",
+    "specializations": [
+      "программист"
+    ]
+  },
+  "tasks": [
+    {
+      "name": "Настроить базу данных",
+      "time": 4,
+      "specializations": [
+        "программист"
+      ]
+    }
+  ],
+  "total_task_time": 4.0
+}

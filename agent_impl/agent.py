@@ -25,7 +25,7 @@ class WorkerAgent(Agent):
         self.other_agents = other_agents if other_agents else []
         self.specializations = specializations if specializations else []
         self.plan = []
-        self.attempts_to_balancing = 10
+        self.attempts_to_balancing = 20
 
 
     async def setup(self):

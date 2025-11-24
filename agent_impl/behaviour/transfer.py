@@ -86,7 +86,7 @@ class TransferConfirmBehaviour(CyclicBehaviour):
                     f" Ошибка обработки подтверждения передачи: {e}")
             self.agent.neighbor_choice = None
             self.agent.transfer_object = None
-            self.agent.attempts_to_balancing = 10
+            self.agent.attempts_to_balancing = 20
 
 
 class TransferConfirmErrorBehaviour(CyclicBehaviour):
