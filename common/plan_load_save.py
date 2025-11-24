@@ -17,6 +17,10 @@ def save_plan_to_file(old_file_path, plan):
     directory = os.path.dirname(old_file_path)
     parent_dir = os.path.dirname(directory)
     new_file_path = os.path.join(parent_dir, "new", os.path.basename(old_file_path))
+    if not os.path.exists(parent_dir):
+        os.makedirs(parent_dir)
+    if not os.path.exists(os.path.join(parent_dir, "new")):
+        os.makedirs(os.path.join(parent_dir, "new"))
     try:
         data = {
             "plan": plan,

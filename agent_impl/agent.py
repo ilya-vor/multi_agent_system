@@ -4,7 +4,7 @@ from agent_impl.behaviour.alive import CheckAgentAlive, RequestAlive, ReplyAlive
 from agent_impl.behaviour.balancing import BalancingBehaviour
 from agent_impl.behaviour.transfer import TransferRequestBehaviour, TransferConfirmBehaviour, TransferConfirmErrorBehaviour
 from agent_impl.behaviour.time import TimeRequestBehaviour, TimeReplyBehaviour, TimeReplyErrorBehaviour
-from common.backpack import save_plan_to_file, load_plan_from_file
+from common.plan_load_save import save_plan_to_file, load_plan_from_file
 from common.get_time import get_time
 
 # logging.basicConfig(
@@ -52,7 +52,7 @@ class WorkerAgent(Agent):
         transfer_confirm_error_template.set_metadata("type", "transfer_confirm_error")
 
         # Добавляем поведения
-        self.add_behaviour(CheckAgentAlive(period=self.COMMUNICATION_INTERVAL))
+        self.add_behaviour(CheckAgentAlive(period=self.COMMUNICATION_INTERVAL * 1.5))
         self.add_behaviour(RequestAlive(), template=request_agent_alive)
         self.add_behaviour(ReplyAlive(), template=replay_agent_alive)
 
