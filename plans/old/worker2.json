@@ -12,6 +12,13 @@
       "specializations": [
         "программист"
       ]
+    },
+    {
+      "name": "Написать сайт2",
+      "time": 4.5,
+      "specializations": [
+        "программист"
+      ]
     }
   ],
   "total_task_time": 5.0

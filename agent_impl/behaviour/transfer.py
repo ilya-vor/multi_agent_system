@@ -62,7 +62,7 @@ class TransferConfirmBehaviour(CyclicBehaviour):
         if (confirm and
             confirm.get_metadata("type") == "transfer_confirm" and
             self.agent.neighbor_choice and
-            confirm.sender == self.agent.neighbor_choice[0]):
+            str(confirm.sender).split('/')[0] == self.agent.neighbor_choice[0]):
             try:
                 # Удаляем объект из своего плана
                 self.agent.plan.remove(self.agent.transfer_object)
@@ -97,7 +97,7 @@ class TransferConfirmErrorBehaviour(CyclicBehaviour):
         if (confirm and
                 confirm.get_metadata("type") == "transfer_confirm_error" and
                 self.agent.neighbor_choice and
-                confirm.sender == self.agent.neighbor_choice[0]):
+                str(confirm.sender).split('/')[0] == self.agent.neighbor_choice[0]):
             neighbor_data = json.loads(confirm.body)
             neighbor_error = neighbor_data["error"]
             print(

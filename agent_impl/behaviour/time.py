@@ -35,7 +35,7 @@ class TimeReplyBehaviour(CyclicBehaviour):
         if (msg and
                 msg.get_metadata("type") == "time_reply" and
                 self.agent.neighbor_choice and
-                msg.sender == self.agent.neighbor_choice[0]):
+                str(msg.sender).split('/')[0] == self.agent.neighbor_choice[0]):
             try:
                 neighbor_data = json.loads(msg.body)
                 neighbor_time = neighbor_data["time"]
@@ -107,7 +107,7 @@ class TimeReplyErrorBehaviour(CyclicBehaviour):
         if (msg and
                 msg.get_metadata("type") == "time_reply_error" and
                 self.agent.neighbor_choice and
-                msg.sender == self.agent.neighbor_choice[0]):
+                str(msg.sender).split('/')[0] == self.agent.neighbor_choice[0]):
             neighbor_data = json.loads(msg.body)
             neighbor_error = neighbor_data["error"]
             print(f"{get_time()} [TimeReplyErrorBehaviour] {self.agent.jid}:"

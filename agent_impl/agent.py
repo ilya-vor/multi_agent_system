@@ -53,7 +53,7 @@ class WorkerAgent(Agent):
         transfer_confirm_error_template.set_metadata("type", "transfer_confirm_error")
 
         # Добавляем поведения
-        self.add_behaviour(CheckAgentAlive(period=self.COMMUNICATION_INTERVAL * 1.5))
+        self.add_behaviour(CheckAgentAlive(period=self.COMMUNICATION_INTERVAL * 5.5))
         self.add_behaviour(RequestAlive(), template=request_agent_alive)
         self.add_behaviour(ReplyAlive(), template=replay_agent_alive)
 

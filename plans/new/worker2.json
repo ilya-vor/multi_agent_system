@@ -1,19 +1,26 @@
 {
   "plan": [
     {
-      "name": "Разработать API",
-      "time": 8,
+      "name": "Написать сайт",
+      "time": 5,
       "specializations": [
         "программист"
       ]
     },
     {
-      "name": "Разработать интерфейс пользователя",
-      "time": 12,
+      "name": "Написать сайт2",
+      "time": 4.5,
+      "specializations": [
+        "программист"
+      ]
+    },
+    {
+      "name": "Написать юнит-тесты",
+      "time": 4,
       "specializations": [
         "программист"
       ]
     }
   ],
-  "total_weight": 20
+  "total_weight": 13.5
 }

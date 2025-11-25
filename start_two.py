@@ -9,10 +9,10 @@ async def main():
           "программист",
           "тестировщик"
         ] # специализации текущего агента
-    other_agents = [['worker2@26.3.185.180', ['программист']], ['worker3@26.3.185.180', ['тестировщик']], ['worker4@26.3.185.180', ['программист', 'тестировщик']]]
+    other_agents = [["worker2@26.3.185.180", ["программист"]], ["worker3@26.3.185.180", ["тестировщик"]], ["worker4@26.3.185.180", ["программист", "тестировщик"]]]
     w = WorkerAgent(
         jid=current_jid,
-        password=current_jid.split('@')[0],
+        password=current_jid.split("@")[0],
         plan_file="plans\\old\\worker1.json",
         other_agents=other_agents,
         specializations=current_specializations,
@@ -23,39 +23,11 @@ async def main():
     current_specializations =  [
           "программист"
         ] # специализации текущего агента
-    other_agents = [['worker1@26.3.185.180', ['программист', 'тестировщик']], ['worker3@26.3.185.180', ['тестировщик']], ['worker4@26.3.185.180', ['программист', 'тестировщик']]]
+    other_agents = [["worker1@26.3.185.180", ["программист", "тестировщик"]], ["worker3@26.3.185.180", ["тестировщик"]], ["worker4@26.3.185.180", ["программист", "тестировщик"]]]
     w = WorkerAgent(
         jid=current_jid,
-        password=current_jid.split('@')[0],
+        password=current_jid.split("@")[0],
         plan_file="plans\\old\\worker2.json",
-        other_agents=other_agents,
-        specializations=current_specializations,
-    )
-    workers.append(w)
-
-    current_jid =  "worker3@26.3.185.180" # jid текущего агента
-    current_specializations =  [
-          "программист"
-        ] # специализации текущего агента
-    other_agents = [['worker1@26.3.185.180', ['программист', 'тестировщик']], ['worker2@26.3.185.180', ['программист']], ['worker4@26.3.185.180', ['программист', 'тестировщик']]]
-    w = WorkerAgent(
-        jid=current_jid,
-        password=current_jid.split('@')[0],
-        plan_file="plans\\old\\worker3.json",
-        other_agents=other_agents,
-        specializations=current_specializations,
-    )
-    workers.append(w)
-
-    current_jid =  "worker4@26.3.185.180" # jid текущего агента
-    current_specializations =  [
-          "программист"
-        ] # специализации текущего агента
-    other_agents = [['worker1@26.3.185.180', ['программист', 'тестировщик']], ['worker2@26.3.185.180', ['программист']], ['worker3@26.3.185.180', ['тестировщик']]]
-    w = WorkerAgent(
-        jid=current_jid,
-        password=current_jid.split('@')[0],
-        plan_file="plans\\old\\worker4.json",
         other_agents=other_agents,
         specializations=current_specializations,
     )
@@ -66,7 +38,7 @@ async def main():
         await w.start()
         print(f"{get_time()} Started {w.jid}")
 
-    print('All agents started; press Ctrl+C to stop')
+    print("All agents started; press Ctrl+C to stop")
     while True:
         await asyncio.sleep(workers[0].COMMUNICATION_INTERVAL)
         for w in workers:
@@ -76,5 +48,5 @@ async def main():
                 print(f"{get_time()} [PERIODIC SAVE] {w.jid}: Ошибка периодического сохранения")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

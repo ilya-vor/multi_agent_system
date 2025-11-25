@@ -21,7 +21,7 @@ class CheckAgentAlive(PeriodicBehaviour):
 
 class RequestAlive(CyclicBehaviour):
     async def run(self):
-        msg = await self.receive(timeout=10)
+        msg = await self.receive(timeout=self.agent.COMMUNICATION_INTERVAL * 5.5)
         if msg and msg.get_metadata("type") == "request_alive":
             reply = msg.make_reply()
             reply.set_metadata("type", "reply_alive")
@@ -32,11 +32,11 @@ class RequestAlive(CyclicBehaviour):
 
 class ReplyAlive(CyclicBehaviour):
     async def run(self):
-        msg = await self.receive(timeout=10)
+        msg = await self.receive(timeout=self.agent.COMMUNICATION_INTERVAL * 5.5)
         if (msg and
                 msg.get_metadata("type") == "reply_alive" and
                 self.agent.neighbor_choice and
-                msg.sender == self.agent.neighbor_choice[0]):
+                str(msg.sender).split('/')[0] == self.agent.neighbor_choice[0]):
             pass
         else:
             self.agent.neighbor_choice = None
