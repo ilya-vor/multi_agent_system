@@ -1,6 +1,13 @@
 {
   "plan": [
     {
+      "name": "Написать юнит-тесты",
+      "time": 4,
+      "specializations": [
+        "программист"
+      ]
+    },
+    {
       "name": "Написать сайт",
       "time": 5,
       "specializations": [
@@ -8,19 +15,12 @@
       ]
     },
     {
-      "name": "Написать сайт2",
-      "time": 4.5,
-      "specializations": [
-        "программист"
-      ]
-    },
-    {
-      "name": "Написать юнит-тесты",
-      "time": 4,
+      "name": "Разработать интерфейс пользователя",
+      "time": 12,
       "specializations": [
         "программист"
       ]
     }
   ],
-  "total_weight": 13.5
+  "total_weight": 21
 }

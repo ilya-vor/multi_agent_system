@@ -20,14 +20,7 @@
       "specializations": [
         "тестировщик"
       ]
-    },
-    {
-      "name": "Написать тестовую документацию",
-      "time": 3,
-      "specializations": [
-        "тестировщик"
-      ]
     }
   ],
-  "total_weight": 20.5
+  "total_weight": 17.5
 }

@@ -7,19 +7,12 @@
   },
   "tasks": [
     {
-      "name": "Написать сайт",
-      "time": 5,
-      "specializations": [
-        "программист"
-      ]
-    },
-    {
-      "name": "Написать сайт2",
-      "time": 4.5,
+      "name": "Написать юнит-тесты",
+      "time": 4,
       "specializations": [
         "программист"
       ]
     }
   ],
-  "total_task_time": 5.0
+  "total_task_time": 4.0
 }
