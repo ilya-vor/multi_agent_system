@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  prosody:
+    image: prosody/prosody:latest
+    container_name: prosody-xmpp
+    ports:
+      - "0.0.0.0:5222:5222"
+      - "0.0.0.0:5269:5269"
+      - "0.0.0.0:5280:5280"
+      - "0.0.0.0:5347:5347"
+    volumes:
+      - ./prosody-config/prosody.cfg.lua:/etc/prosody/prosody.cfg.lua:ro
+      - ./certs/${IP_ADDRESS}.key:/etc/prosody/certs/${IP_ADDRESS}.key:ro
+      - ./certs/${IP_ADDRESS}.crt:/etc/prosody/certs/${IP_ADDRESS}.crt:ro
+    environment:
+      - DOMAIN=${IP_ADDRESS}
+      - LOCAL=admin
+      - PASSWORD=admin
+      - PROSODY_VIRTUAL_HOSTS=${IP_ADDRESS}
+      - PROSODY_NETWORK_HOSTNAME=${IP_ADDRESS}
+    networks:
+      - prosody-network
+    restart: unless-stopped
+
+networks:
+  prosody-network:
+    driver: bridge
